@@ -86,7 +86,6 @@ func main() {
 	}
 
 	nodes, err := clientset.CoreV1().Nodes().List(v1.ListOptions{})
-	//nodes, err = clientset.Core().Nodes().List(v1.ListOptions{FieldSelector: "metadata.name=minikube"})
 
 	if err != nil {
 		fmt.Println("Error getting nodes")
@@ -124,6 +123,40 @@ func main() {
 
 		fmt.Println(index)
 		fmt.Println(pretty.Formatter(element))
+	}
+
+	fmt.Println("\nGetting Services: \n")
+
+	services, error := clientset.CoreV1().Services("default").List(v1.ListOptions{})
+
+	if error != nil {
+		fmt.Println("Error getting services. Exiting...")
+		os.Exit(-1)
+	}
+
+	for index, element := range services.Items {
+
+		fmt.Println(index)
+		fmt.Println(pretty.Formatter(element.Name))
+		fmt.Println(pretty.Formatter(element.Spec.Selector))
+
+		selectors := element.Spec.Selector
+
+		for key, value := range selectors {
+			fmt.Print(key, " = ", value)
+		}
+	}
+
+	fmt.Println("\nGetting Pods: \n")
+	pods, error := clientset.CoreV1().Pods("default").List(v1.ListOptions{})
+
+	if error != nil {
+		fmt.Println("Error getting pods. Exiting...", error.Error)
+	}
+
+	for index, element := range pods.Items {
+
+		fmt.Println(index, element)
 	}
 
 }
