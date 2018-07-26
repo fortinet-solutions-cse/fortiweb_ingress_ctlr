@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -14,6 +15,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/kr/pretty"
 )
 
 func getClient(pathToCfg string) (*kubernetes.Clientset, error) {
@@ -71,17 +74,23 @@ func main() {
 
 	fmt.Println(tag)
 
-	clientset, err := getClient("~/.kube/config")
+	location := "/home/magonzalez/.kube/config"
+
+	fmt.Println(location)
+
+	clientset, err := getClient(location)
 	if err != nil {
 		fmt.Println(strings.Join([]string{"Error:", err.Error()}, ""))
 		logrus.Error(err)
+		os.Exit(-1)
 	}
 
-	nodes, err := clientset.Core().Nodes().List(v1.ListOptions{})
+	nodes, err := clientset.CoreV1().Nodes().List(v1.ListOptions{})
 	//nodes, err = clientset.Core().Nodes().List(v1.ListOptions{FieldSelector: "metadata.name=minikube"})
 
 	if err != nil {
 		fmt.Println("Error getting nodes")
+		os.Exit(-1)
 	}
 
 	fmt.Println("Length:" + strconv.Itoa(len(nodes.Items)))
@@ -91,4 +100,30 @@ func main() {
 		fmt.Println(nodes.Items)
 
 	}
+
+	fmt.Println("Beautified:")
+
+	for index, element := range nodes.Items {
+
+		fmt.Println("Id: " + strconv.Itoa(index))
+		fmt.Println(element.Status.NodeInfo.MachineID)
+		fmt.Println(element.Status.NodeInfo.KernelVersion)
+
+	}
+
+	fmt.Println("Getting Ingress: ")
+
+	ingressses, error := clientset.ExtensionsV1beta1().Ingresses("default").List(v1.ListOptions{})
+
+	if error != nil {
+		fmt.Println("Error getting ingress resources. Exiting...")
+		os.Exit(-1)
+	}
+
+	for index, element := range ingressses.Items {
+
+		fmt.Println(index)
+		fmt.Println(pretty.Formatter(element))
+	}
+
 }
