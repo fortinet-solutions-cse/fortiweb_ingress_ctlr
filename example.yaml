@@ -1,0 +1,19 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: my-ingress
+spec:
+  rules:
+  - host: www.mysite.com
+    http:
+      paths:
+      - backend:
+          serviceName: website
+          servicePort: 80
+  - host: forums.mysite.com
+    http:
+      paths:
+      - path:
+        backend:
+          serviceName: forums
+          servicePort: 80
