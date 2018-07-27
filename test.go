@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -110,7 +112,7 @@ func main() {
 
 	}
 
-	fmt.Println("Getting Ingress: ")
+	fmt.Println("\n Getting Ingress: ")
 
 	ingressses, error := clientset.ExtensionsV1beta1().Ingresses("default").List(v1.ListOptions{})
 
@@ -143,7 +145,7 @@ func main() {
 		selectors := element.Spec.Selector
 
 		for key, value := range selectors {
-			fmt.Print(key, " = ", value)
+			fmt.Println(key, " = ", value)
 		}
 	}
 
@@ -151,12 +153,37 @@ func main() {
 	pods, error := clientset.CoreV1().Pods("default").List(v1.ListOptions{})
 
 	if error != nil {
-		fmt.Println("Error getting pods. Exiting...", error.Error)
+		fmt.Println("Error getting pods. Exiting...", error.Error())
 	}
 
 	for index, element := range pods.Items {
 
 		fmt.Println(index, element)
+		labels := element.Labels
+
+		fmt.Println(labels)
+
+		fmt.Println("Pod name: ", element.Name)
+		fmt.Println("Node IP: ", element.Status.HostIP)
+
 	}
+
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
+	client := &http.Client{}
+
+	//resp, err := client.Get("https://192.168.122.40:90/api/v1.0/System/Status/Status")
+
+	req, err := http.NewRequest("GET", "https://192.168.122.40:90/api/v1.0/System/Status/Status", nil)
+
+	req.Header.Add("Authorization", "YWRtaW46")
+	response, error := client.Do(req)
+
+	if err != nil {
+		fmt.Printf("The HTTP request failed with error %s\n", err)
+		os.Exit(-1)
+	}
+
+	fmt.Println(response)
 
 }
