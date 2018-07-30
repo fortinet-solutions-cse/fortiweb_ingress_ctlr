@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -172,8 +173,6 @@ func main() {
 
 	client := &http.Client{}
 
-	//resp, err := client.Get("https://192.168.122.40:90/api/v1.0/System/Status/Status")
-
 	req, err := http.NewRequest("GET", "https://192.168.122.40:90/api/v1.0/System/Status/Status", nil)
 
 	req.Header.Add("Authorization", "YWRtaW46")
@@ -185,5 +184,11 @@ func main() {
 	}
 
 	fmt.Println(response)
+
+	defer response.Body.Close()
+
+	body, _ := ioutil.ReadAll(response.Body)
+
+	fmt.Println(string(body[:]))
 
 }
