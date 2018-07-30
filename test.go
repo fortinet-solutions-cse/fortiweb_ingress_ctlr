@@ -178,7 +178,7 @@ func main() {
 	fmt.Println(fwb.GetStatus())
 
 	body := map[string]interface{}{
-		"name":           "K8S_virtual_server5",
+		"name":           "K8S_virtual_server",
 		"ipv4Address":    "0.0.0.0/0.0.0.0",
 		"ipv6Address":    "::/0",
 		"interface":      "port1",
@@ -187,9 +187,46 @@ func main() {
 		"can_delete":     true,
 	}
 
-	fmt.Println(body)
-
 	jsonByte, err := json.Marshal(body)
 	fwb.CreateVirtualServer(string(jsonByte))
+
+	body = map[string]interface{}{
+		"name":                           "K8S_Server_Pool",
+		"poolCount":                      0,
+		"dissingleServerOrServerBalance": "Single Server",
+		"distype":                        "Reverse Proxy",
+		"type":                           1,
+		"comments":                       "",
+		"singleServerOrServerBalance":    1,
+		"can_delete":                     true,
+	}
+
+	jsonByte, err = json.Marshal(body)
+	fwb.CreateServerPool(string(jsonByte))
+
+	body = map[string]interface{}{
+		"name":       "K8S_HTTP_Content_Routing_Policy",
+		"count":      0,
+		"serverPool": "K8S_Server_Pool",
+		"matchSeq":   "(  )",
+		"can_delete": true,
+	}
+
+	jsonByte, err = json.Marshal(body)
+	fwb.CreateHTTPContentRoutingPolicy(string(jsonByte))
+
+	body = map[string]interface{}{
+		"id":              "1",
+		"_id":             "1",
+		"seqId":           1,
+		"realId":          "1",
+		"matchObject":     1,
+		"matchExpression": "/fdsw",
+		"hostCondition":   1,
+		"concatenate":     2,
+	}
+
+	jsonByte, err = json.Marshal(body)
+	fwb.CreateHTTPContentRouting("K8S_HTTP_Content_Routing_Policy", string(jsonByte))
 
 }
