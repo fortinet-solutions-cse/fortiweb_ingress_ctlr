@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -169,11 +170,26 @@ func main() {
 	}
 
 	fwb := &fortiwebclient.FortiWebClient{
-		URL:      "https://192.168.122.40:90/api/v1.0/System/Status/Status",
+		URL:      "https://192.168.122.40:90/",
 		Username: "admin",
 		Password: "",
 	}
 
 	fmt.Println(fwb.GetStatus())
+
+	body := map[string]interface{}{
+		"name":           "K8S_virtual_server5",
+		"ipv4Address":    "0.0.0.0/0.0.0.0",
+		"ipv6Address":    "::/0",
+		"interface":      "port1",
+		"useInterfaceIP": true,
+		"enable":         true,
+		"can_delete":     true,
+	}
+
+	fmt.Println(body)
+
+	jsonByte, err := json.Marshal(body)
+	fwb.CreateVirtualServer(string(jsonByte))
 
 }
