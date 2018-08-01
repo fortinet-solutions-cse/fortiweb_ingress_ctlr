@@ -177,29 +177,19 @@ func main() {
 
 	fmt.Println(fwb.GetStatus())
 
-	fwb.CreateVirtualServer("K8S_virtual_server_test",
+	fwb.CreateVirtualServer("K8S_virtual_server",
 		"",
 		"",
 		"port1",
 		true,
-		true,
 		true)
 
+	fwb.CreateServerPool("K8S_Server_Pool",
+		fortiwebclient.SingleServer,
+		fortiwebclient.ReverseProxy,
+		"")
+
 	body := map[string]interface{}{
-		"name":                           "K8S_Server_Pool",
-		"poolCount":                      0,
-		"dissingleServerOrServerBalance": "Single Server",
-		"distype":                        "Reverse Proxy",
-		"type":                           1,
-		"comments":                       "",
-		"singleServerOrServerBalance":    1,
-		"can_delete":                     true,
-	}
-
-	jsonByte, err := json.Marshal(body)
-	fwb.CreateServerPool(string(jsonByte))
-
-	body = map[string]interface{}{
 		"name":       "K8S_HTTP_Content_Routing_Policy",
 		"count":      0,
 		"serverPool": "K8S_Server_Pool",
@@ -207,7 +197,7 @@ func main() {
 		"can_delete": true,
 	}
 
-	jsonByte, err = json.Marshal(body)
+	jsonByte, err := json.Marshal(body)
 	fwb.CreateHTTPContentRoutingPolicy(string(jsonByte))
 
 	body = map[string]interface{}{
