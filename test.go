@@ -177,20 +177,15 @@ func main() {
 
 	fmt.Println(fwb.GetStatus())
 
+	fwb.CreateVirtualServer("K8S_virtual_server_test",
+		"",
+		"",
+		"port1",
+		true,
+		true,
+		true)
+
 	body := map[string]interface{}{
-		"name":           "K8S_virtual_server",
-		"ipv4Address":    "0.0.0.0/0.0.0.0",
-		"ipv6Address":    "::/0",
-		"interface":      "port1",
-		"useInterfaceIP": true,
-		"enable":         true,
-		"can_delete":     true,
-	}
-
-	jsonByte, err := json.Marshal(body)
-	fwb.CreateVirtualServer(string(jsonByte))
-
-	body = map[string]interface{}{
 		"name":                           "K8S_Server_Pool",
 		"poolCount":                      0,
 		"dissingleServerOrServerBalance": "Single Server",
@@ -201,7 +196,7 @@ func main() {
 		"can_delete":                     true,
 	}
 
-	jsonByte, err = json.Marshal(body)
+	jsonByte, err := json.Marshal(body)
 	fwb.CreateServerPool(string(jsonByte))
 
 	body = map[string]interface{}{
