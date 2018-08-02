@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -190,18 +189,9 @@ func main() {
 		"K8S_Server_Pool",
 		"(  )")
 
-	body := map[string]interface{}{
-		"id":              "1",
-		"_id":             "1",
-		"seqId":           1,
-		"realId":          "1",
-		"matchObject":     1,
-		"matchExpression": "/fdsw",
-		"hostCondition":   1,
-		"concatenate":     2,
-	}
-
-	jsonByte, err := json.Marshal(body)
-	fwb.CreateHTTPContentRouting("K8S_HTTP_Content_Routing_Policy", string(jsonByte))
+	fwb.CreateHTTPContentRoutingUsingHost("K8S_HTTP_Content_Routing_Policy",
+		"myhost",
+		3,
+		fortiwebclient.AND)
 
 }
