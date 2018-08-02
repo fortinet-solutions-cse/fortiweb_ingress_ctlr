@@ -194,4 +194,8 @@ func main() {
 		3,
 		fortiwebclient.AND)
 
+	fwb.CreateHTTPContentRoutingUsingURL("K8S_HTTP_Content_Routing_Policy",
+		"myurl",
+		3,
+		fortiwebclient.OR)
 }
