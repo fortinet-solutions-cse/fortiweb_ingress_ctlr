@@ -188,6 +188,11 @@ func main() {
 		fortiwebclient.RoundRobin,
 		"")
 
+	fmt.Println("Creating Server Pool Rule 1...")
+	fwb.CreateServerPoolRule("K8S_Server_Pool", "10.192.0.3", 30304, 2, 0)
+	fmt.Println("Creating Server Pool Rule 2...")
+	fwb.CreateServerPoolRule("K8S_Server_Pool", "10.192.0.4", 30304, 2, 0)
+
 	fmt.Println("Creating HTTP Content Routing Policy...")
 	fwb.CreateHTTPContentRoutingPolicy("K8S_HTTP_Content_Routing_Policy",
 		"K8S_Server_Pool",
