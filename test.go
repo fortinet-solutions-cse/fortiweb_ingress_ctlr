@@ -113,7 +113,7 @@ func main() {
 
 	}
 
-	fmt.Println("\n Getting Ingress: ")
+	fmt.Print("\n Getting Ingress: \n\n")
 
 	ingressses, error := clientset.ExtensionsV1beta1().Ingresses("default").List(v1.ListOptions{})
 
@@ -128,7 +128,7 @@ func main() {
 		fmt.Println(pretty.Formatter(element))
 	}
 
-	fmt.Println("\nGetting Services: \n")
+	fmt.Print("\nGetting Services: \n\n")
 
 	services, error := clientset.CoreV1().Services("default").List(v1.ListOptions{})
 
@@ -150,7 +150,7 @@ func main() {
 		}
 	}
 
-	fmt.Println("\nGetting Pods: \n")
+	fmt.Print("\nGetting Pods: \n\n")
 	pods, error := clientset.CoreV1().Pods("default").List(v1.ListOptions{})
 
 	if error != nil {
@@ -178,29 +178,19 @@ func main() {
 	fmt.Println(fwb.GetStatus())
 
 	fwb.CreateVirtualServer("K8S_virtual_server",
-		"",
-		"",
-		"port1",
-		true,
-		true)
+		"", "", "port1",
+		true, true)
 
 	fwb.CreateServerPool("K8S_Server_Pool",
 		fortiwebclient.SingleServer,
 		fortiwebclient.ReverseProxy,
 		"")
 
+	fwb.CreateHTTPContentRoutingPolicy("K8S_HTTP_Content_Routing_Policy",
+		"K8S_Server_Pool",
+		"(  )")
+
 	body := map[string]interface{}{
-		"name":       "K8S_HTTP_Content_Routing_Policy",
-		"count":      0,
-		"serverPool": "K8S_Server_Pool",
-		"matchSeq":   "(  )",
-		"can_delete": true,
-	}
-
-	jsonByte, err := json.Marshal(body)
-	fwb.CreateHTTPContentRoutingPolicy(string(jsonByte))
-
-	body = map[string]interface{}{
 		"id":              "1",
 		"_id":             "1",
 		"seqId":           1,
@@ -211,7 +201,7 @@ func main() {
 		"concatenate":     2,
 	}
 
-	jsonByte, err = json.Marshal(body)
+	jsonByte, err := json.Marshal(body)
 	fwb.CreateHTTPContentRouting("K8S_HTTP_Content_Routing_Policy", string(jsonByte))
 
 }
