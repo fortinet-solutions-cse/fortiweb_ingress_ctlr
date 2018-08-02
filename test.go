@@ -176,26 +176,39 @@ func main() {
 
 	fmt.Println(fwb.GetStatus())
 
+	fmt.Println("Creating Virtual Server...")
 	fwb.CreateVirtualServer("K8S_virtual_server",
 		"", "", "port1",
 		true, true)
 
+	fmt.Println("Creating Server Pool...")
 	fwb.CreateServerPool("K8S_Server_Pool",
 		fortiwebclient.SingleServer,
 		fortiwebclient.ReverseProxy,
 		"")
 
+	fmt.Println("Creating HTTP Content Routing Policy...")
 	fwb.CreateHTTPContentRoutingPolicy("K8S_HTTP_Content_Routing_Policy",
 		"K8S_Server_Pool",
 		"(  )")
 
+	fmt.Println("Creating HTTP Content Routing for Host...")
 	fwb.CreateHTTPContentRoutingUsingHost("K8S_HTTP_Content_Routing_Policy",
 		"myhost",
 		3,
 		fortiwebclient.AND)
 
+	fmt.Println("Creating HTTP Content Routing for URL...")
 	fwb.CreateHTTPContentRoutingUsingURL("K8S_HTTP_Content_Routing_Policy",
 		"myurl",
 		3,
 		fortiwebclient.OR)
+
+	fmt.Println("Creating HTTP Content Routing Policy...")
+	fwb.CreateServerPolicy("K8S_Server_Policy",
+		"K8S_virtual_server", "",
+		"HTTP", "", "", "",
+		fortiwebclient.HTTPContentRouting, 8192,
+		false, false, false, false, false)
+
 }
