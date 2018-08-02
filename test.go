@@ -183,8 +183,9 @@ func main() {
 
 	fmt.Println("Creating Server Pool...")
 	fwb.CreateServerPool("K8S_Server_Pool",
-		fortiwebclient.SingleServer,
+		fortiwebclient.ServerBalance,
 		fortiwebclient.ReverseProxy,
+		fortiwebclient.RoundRobin,
 		"")
 
 	fmt.Println("Creating HTTP Content Routing Policy...")
