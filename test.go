@@ -210,11 +210,20 @@ func main() {
 		3,
 		fortiwebclient.OR)
 
-	fmt.Println("Creating HTTP Content Routing Policy...")
+	fmt.Println("Creating Server Policy...")
 	fwb.CreateServerPolicy("K8S_Server_Policy",
 		"K8S_virtual_server", "",
 		"HTTP", "", "", "",
 		fortiwebclient.HTTPContentRouting, 8192,
 		false, false, false, false, false)
+
+	fmt.Println("Creating Server Policy Content Rule...")
+	fwb.CreateServerPolicyContentRule("K8S_Server_Policy",
+		"K8S_Server_Policy_Content_Rule",
+		"K8S_HTTP_Content_Routing_Policy",
+		"",
+		"",
+		true,
+		false)
 
 }
