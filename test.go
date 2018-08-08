@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -20,6 +23,121 @@ import (
 
 	"github.com/fortinet-solutions-cse/fortiweb_go_client"
 )
+
+var fwb = &fortiwebclient.FortiWebClient{
+	URL:      "https://192.168.122.40:90/",
+	Username: "admin",
+	Password: "",
+}
+
+func deleteAll() error {
+
+	fmt.Println("Removing All K8S resources")
+
+	response, error := fwb.DoGet("api/v1.0/ServerObjects/Server/VirtualServer")
+
+	if error != nil {
+		return error
+	}
+
+	bodyByteArray, error := ioutil.ReadAll(response.Body)
+
+	var bodyMap interface{}
+
+	err := json.Unmarshal(bodyByteArray, bodyMap)
+
+	if err != nil {
+		return error
+	}
+
+	/*for i, virtualServer := range bodyMap {
+
+		fmt.Println("Removing: ", i, virtualServer)
+	}*/
+
+	return nil
+}
+
+func transformIngressToFWB(ingress v1beta1.Ingress) {
+
+	fmt.Println("Transforming ingress:" + ingress.GetName())
+
+	//Delete All Resources created previously from K8S in FWB
+	deleteAll()
+
+	fmt.Println("Creating Virtual Server...")
+	fwb.CreateVirtualServer("K8S_virtual_server",
+		"", "", "port1",
+		true, true)
+
+	fmt.Println("Creating Server Policy...")
+	fwb.CreateServerPolicy("K8S_Server_Policy",
+		"K8S_virtual_server", "",
+		"HTTP", "", "", "",
+		fortiwebclient.HTTPContentRouting, 8192,
+		false, false, false, false, false)
+
+	for _, rule := range ingress.Spec.Rules {
+		transformIngressRuleToFWB(rule)
+	}
+}
+
+func transformIngressRuleToFWB(rule v1beta1.IngressRule) {
+	transformHTTPRuleToFWB(rule.Host, rule.HTTP)
+}
+
+func transformHTTPRuleToFWB(host string, httpRule *v1beta1.HTTPIngressRuleValue) {
+
+	for _, path := range httpRule.Paths {
+		transformHTTPIngressPathToFWB(host, path)
+	}
+}
+
+func transformHTTPIngressPathToFWB(host string, ingressPath v1beta1.HTTPIngressPath) {
+
+	var path string = ingressPath.Path
+	service := ingressPath.Backend.ServiceName
+
+	// Get port number of Service
+	// Get list of nodes
+
+	// CreateServerPool
+	fmt.Println("Creating Server Pool...")
+	fwb.CreateServerPool("K8S_Server_Pool_"+service,
+		fortiwebclient.ServerBalance,
+		fortiwebclient.ReverseProxy,
+		fortiwebclient.RoundRobin,
+		"")
+
+	// CreateServerPoolRule
+	fmt.Println("Creating Server Pool Rule 1...")
+	fwb.CreateServerPoolRule("K8S_Server_Pool_"+service, "10.192.0.3", 30304, 2, 0)
+	fmt.Println("Creating Server Pool Rule 2...")
+	fwb.CreateServerPoolRule("K8S_Server_Pool_"+service, "10.192.0.4", 30304, 2, 0)
+
+	// CreateHTTPContentRoutingPolicy
+	fmt.Println("Creating HTTP Content Routing Policy...")
+	fwb.CreateHTTPContentRoutingPolicy("K8S_HTTP_Content_Routing_Policy_"+host+"_"+path,
+		"K8S_Server_Pool_"+service,
+		"(  )")
+
+	// CreateHTTPContentRoutingUsingHost
+	fmt.Println("Creating HTTP Content Routing for Host...")
+	fwb.CreateHTTPContentRoutingUsingHost("K8S_HTTP_Content_Routing_Policy_"+host+"_"+path,
+		host,
+		3,
+		fortiwebclient.AND)
+
+	// CreateHTTPContentRoutingUsingURL
+	fmt.Println("Creating HTTP Content Routing for URL...")
+	fwb.CreateHTTPContentRoutingUsingURL("K8S_HTTP_Content_Routing_Policy_"+host+"_"+path,
+		strings.Replace(path, "/", " ", -1),
+		3,
+		fortiwebclient.OR)
+
+	// CreateServerPolicyContentRule (Associate Content Routing Policy to )
+
+}
 
 func getClient(pathToCfg string) (*kubernetes.Clientset, error) {
 
@@ -114,14 +232,14 @@ func main() {
 
 	fmt.Print("\n Getting Ingress: \n\n")
 
-	ingressses, error := clientset.ExtensionsV1beta1().Ingresses("default").List(v1.ListOptions{})
+	ingresses, error := clientset.ExtensionsV1beta1().Ingresses("default").List(v1.ListOptions{})
 
 	if error != nil {
 		fmt.Println("Error getting ingress resources. Exiting...")
 		os.Exit(-1)
 	}
 
-	for index, element := range ingressses.Items {
+	for index, element := range ingresses.Items {
 
 		fmt.Println(index)
 		fmt.Println(pretty.Formatter(element))
@@ -167,63 +285,76 @@ func main() {
 		fmt.Println("Node IP: ", element.Status.HostIP)
 
 	}
+	/*
+		fwb := &fortiwebclient.FortiWebClient{
+			URL:      "https://192.168.122.40:90/",
+			Username: "admin",
+			Password: "",
+		}
 
-	fwb := &fortiwebclient.FortiWebClient{
-		URL:      "https://192.168.122.40:90/",
-		Username: "admin",
-		Password: "",
+		fmt.Println(fwb.GetStatus())
+
+		fmt.Println("Creating Virtual Server...")
+		fwb.CreateVirtualServer("K8S_virtual_server",
+			"", "", "port1",
+			true, true)
+
+		fmt.Println("Creating Server Pool...")
+		fwb.CreateServerPool("K8S_Server_Pool",
+			fortiwebclient.ServerBalance,
+			fortiwebclient.ReverseProxy,
+			fortiwebclient.RoundRobin,
+			"")
+
+		fmt.Println("Creating Server Pool Rule 1...")
+		fwb.CreateServerPoolRule("K8S_Server_Pool", "10.192.0.3", 30304, 2, 0)
+		fmt.Println("Creating Server Pool Rule 2...")
+		fwb.CreateServerPoolRule("K8S_Server_Pool", "10.192.0.4", 30304, 2, 0)
+
+		fmt.Println("Creating HTTP Content Routing Policy...")
+		fwb.CreateHTTPContentRoutingPolicy("K8S_HTTP_Content_Routing_Policy",
+			"K8S_Server_Pool",
+			"(  )")
+
+		fmt.Println("Creating HTTP Content Routing for Host...")
+		fwb.CreateHTTPContentRoutingUsingHost("K8S_HTTP_Content_Routing_Policy",
+			"myhost",
+			3,
+			fortiwebclient.AND)
+
+		fmt.Println("Creating HTTP Content Routing for URL...")
+		fwb.CreateHTTPContentRoutingUsingURL("K8S_HTTP_Content_Routing_Policy",
+			"myurl",
+			3,
+			fortiwebclient.OR)
+
+		fmt.Println("Creating Server Policy...")
+		fwb.CreateServerPolicy("K8S_Server_Policy",
+			"K8S_virtual_server", "",
+			"HTTP", "", "", "",
+			fortiwebclient.HTTPContentRouting, 8192,
+			false, false, false, false, false)
+
+		fmt.Println("Creating Server Policy Content Rule...")
+		fwb.CreateServerPolicyContentRule("K8S_Server_Policy",
+			"K8S_Server_Policy_Content_Rule",
+			"K8S_HTTP_Content_Routing_Policy",
+			"",
+			"",
+			true,
+			false)
+	*/
+	fmt.Print("\n Getting Ingress: \n\n")
+
+	ingresses, error = clientset.ExtensionsV1beta1().Ingresses("default").List(v1.ListOptions{})
+
+	if error != nil {
+		fmt.Println("Error getting ingress resources. Exiting...")
+		os.Exit(-1)
 	}
 
-	fmt.Println(fwb.GetStatus())
-
-	fmt.Println("Creating Virtual Server...")
-	fwb.CreateVirtualServer("K8S_virtual_server",
-		"", "", "port1",
-		true, true)
-
-	fmt.Println("Creating Server Pool...")
-	fwb.CreateServerPool("K8S_Server_Pool",
-		fortiwebclient.ServerBalance,
-		fortiwebclient.ReverseProxy,
-		fortiwebclient.RoundRobin,
-		"")
-
-	fmt.Println("Creating Server Pool Rule 1...")
-	fwb.CreateServerPoolRule("K8S_Server_Pool", "10.192.0.3", 30304, 2, 0)
-	fmt.Println("Creating Server Pool Rule 2...")
-	fwb.CreateServerPoolRule("K8S_Server_Pool", "10.192.0.4", 30304, 2, 0)
-
-	fmt.Println("Creating HTTP Content Routing Policy...")
-	fwb.CreateHTTPContentRoutingPolicy("K8S_HTTP_Content_Routing_Policy",
-		"K8S_Server_Pool",
-		"(  )")
-
-	fmt.Println("Creating HTTP Content Routing for Host...")
-	fwb.CreateHTTPContentRoutingUsingHost("K8S_HTTP_Content_Routing_Policy",
-		"myhost",
-		3,
-		fortiwebclient.AND)
-
-	fmt.Println("Creating HTTP Content Routing for URL...")
-	fwb.CreateHTTPContentRoutingUsingURL("K8S_HTTP_Content_Routing_Policy",
-		"myurl",
-		3,
-		fortiwebclient.OR)
-
-	fmt.Println("Creating Server Policy...")
-	fwb.CreateServerPolicy("K8S_Server_Policy",
-		"K8S_virtual_server", "",
-		"HTTP", "", "", "",
-		fortiwebclient.HTTPContentRouting, 8192,
-		false, false, false, false, false)
-
-	fmt.Println("Creating Server Policy Content Rule...")
-	fwb.CreateServerPolicyContentRule("K8S_Server_Policy",
-		"K8S_Server_Policy_Content_Rule",
-		"K8S_HTTP_Content_Routing_Policy",
-		"",
-		"",
-		true,
-		false)
+	for _, ing := range ingresses.Items {
+		transformIngressToFWB(ing)
+	}
 
 }
