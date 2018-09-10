@@ -34,6 +34,56 @@ func deleteAll() error {
 
 	fmt.Println("Removing All K8S resources")
 
+	deleteAllK8SContentRoutingPolicies()
+	deleteAllK8SServerPoolRules()
+	deleteAllK8SServerPolicies()
+	deleteAllK8SVirtualServers()
+
+	return nil
+
+}
+
+func deleteAllK8SContentRoutingPolicies() error {
+	response, error := fwb.DoGet("api/v1.0/ServerObjects/Server/HTTPContentRoutingPolicy/K8S_HTTP_Content_Routing_Policy")
+
+	if error != nil {
+		return error
+	}
+
+	bodyByteArray, error := ioutil.ReadAll(response.Body)
+
+	var bodyMap interface{}
+
+	err := json.Unmarshal(bodyByteArray, &bodyMap)
+
+	if err != nil {
+		return err
+	}
+
+	contentRoutingPolicyList := reflect.ValueOf(bodyMap)
+
+	for i := 0; i < contentRoutingPolicyList.Len(); i++ {
+
+		value := contentRoutingPolicyList.Index(i).Interface()
+		myMap := value.(map[string]interface{})
+
+		fwb.DeleteContentRoutingPolicy(myMap["name"].(string))
+	}
+
+	return nil
+
+}
+
+func deleteAllK8SServerPoolRules() error {
+
+	return nil
+}
+
+func deleteAllK8SServerPolicies() error {
+	return nil
+}
+
+func deleteAllK8SVirtualServers() error {
 	response, error := fwb.DoGet("api/v1.0/ServerObjects/Server/VirtualServer")
 
 	if error != nil {
@@ -44,18 +94,24 @@ func deleteAll() error {
 
 	var bodyMap interface{}
 
-	err := json.Unmarshal(bodyByteArray, bodyMap)
+	err := json.Unmarshal(bodyByteArray, &bodyMap)
 
 	if err != nil {
-		return error
+		return err
 	}
 
-	/*for i, virtualServer := range bodyMap {
+	virtualServerList := reflect.ValueOf(bodyMap)
 
-		fmt.Println("Removing: ", i, virtualServer)
-	}*/
+	for i := 0; i < virtualServerList.Len(); i++ {
+
+		value := virtualServerList.Index(i).Interface()
+		myMap := value.(map[string]interface{})
+
+		fwb.DeleteVirtualServer(myMap["name"].(string))
+	}
 
 	return nil
+
 }
 
 func transformIngressToFWB(ingress v1beta1.Ingress) {
