@@ -1,0 +1,28 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: my-ingress
+spec:
+  rules:
+  - host: foo.bar.com
+    http:
+      paths:
+      - backend:
+          serviceName: forum-webserver  # ServerPool1
+          servicePort: 80
+        path: /foo                      # HTTPContentRouting1
+      - backend: 
+          serviceName: image-webserver  # ServerPool2
+          servicePort: 80
+        path: /foo2                     # HTTPContentRouting2
+  - host: bar.baz.com
+    http:
+      paths:
+      - backend:
+          serviceName: forum-webserver  # ServerPool1
+          servicePort: 80
+        path: /foo                      # HTTPContentRouting3
+      - backend:
+          serviceName: image-webserver  # ServerPool2
+          servicePort: 80
+        path: /foo2                     # HTTPContentRouting4
