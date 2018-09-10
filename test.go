@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -18,8 +20,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/kr/pretty"
 
 	"github.com/fortinet-solutions-cse/fortiweb_go_client"
 )
@@ -241,11 +241,6 @@ var clientset *kubernetes.Clientset
 var controller cache.Controller
 var store cache.Store
 
-func _init() {
-
-	fmt.Println("_init")
-}
-
 func init() {
 	fmt.Println("init")
 
@@ -263,27 +258,25 @@ func main() {
 		},
 	}
 
-	fmt.Println("Hi")
-	logrus.Info("Welcome")
-
 	var tag string
 
 	tag = "Test"
 
 	fmt.Println(tag)
 
-	location := "/home/magonzalez/.kube/config"
+	kubeconfig := filepath.Join(
+		os.Getenv("HOME"), ".kube", "config")
 
-	fmt.Println(location)
+	fmt.Println("Reading K8S config from: " + kubeconfig)
 
-	clientset, err := getClient(location)
+	clientset, err := getClient(kubeconfig)
 	if err != nil {
 		fmt.Println(strings.Join([]string{"Error:", err.Error()}, ""))
 		logrus.Error(err)
 		os.Exit(-1)
 	}
 
-	nodes, err := clientset.CoreV1().Nodes().List(v1.ListOptions{})
+	/* nodes, err := clientset.CoreV1().Nodes().List(v1.ListOptions{})
 
 	if err != nil {
 		fmt.Println("Error getting nodes")
@@ -363,68 +356,11 @@ func main() {
 		fmt.Println("Node IP: ", element.Status.HostIP)
 
 	}
-	/*
-		fwb := &fortiwebclient.FortiWebClient{
-			URL:      "https://192.168.122.40:90/",
-			Username: "admin",
-			Password: "",
-		}
-
-		fmt.Println(fwb.GetStatus())
-
-		fmt.Println("Creating Virtual Server...")
-		fwb.CreateVirtualServer("K8S_virtual_server",
-			"", "", "port1",
-			true, true)
-
-		fmt.Println("Creating Server Pool...")
-		fwb.CreateServerPool("K8S_Server_Pool",
-			fortiwebclient.ServerBalance,
-			fortiwebclient.ReverseProxy,
-			fortiwebclient.RoundRobin,
-			"")
-
-		fmt.Println("Creating Server Pool Rule 1...")
-		fwb.CreateServerPoolRule("K8S_Server_Pool", "10.192.0.3", 30304, 2, 0)
-		fmt.Println("Creating Server Pool Rule 2...")
-		fwb.CreateServerPoolRule("K8S_Server_Pool", "10.192.0.4", 30304, 2, 0)
-
-		fmt.Println("Creating HTTP Content Routing Policy...")
-		fwb.CreateHTTPContentRoutingPolicy("K8S_HTTP_Content_Routing_Policy",
-			"K8S_Server_Pool",
-			"(  )")
-
-		fmt.Println("Creating HTTP Content Routing for Host...")
-		fwb.CreateHTTPContentRoutingUsingHost("K8S_HTTP_Content_Routing_Policy",
-			"myhost",
-			3,
-			fortiwebclient.AND)
-
-		fmt.Println("Creating HTTP Content Routing for URL...")
-		fwb.CreateHTTPContentRoutingUsingURL("K8S_HTTP_Content_Routing_Policy",
-			"myurl",
-			3,
-			fortiwebclient.OR)
-
-		fmt.Println("Creating Server Policy...")
-		fwb.CreateServerPolicy("K8S_Server_Policy",
-			"K8S_virtual_server", "",
-			"HTTP", "", "", "",
-			fortiwebclient.HTTPContentRouting, 8192,
-			false, false, false, false, false)
-
-		fmt.Println("Creating Server Policy Content Rule...")
-		fwb.CreateServerPolicyContentRule("K8S_Server_Policy",
-			"K8S_Server_Policy_Content_Rule",
-			"K8S_HTTP_Content_Routing_Policy",
-			"",
-			"",
-			true,
-			false)
 	*/
+
 	fmt.Print("\n Getting Ingress: \n\n")
 
-	ingresses, error = clientset.ExtensionsV1beta1().Ingresses("default").List(v1.ListOptions{})
+	ingresses, error := clientset.ExtensionsV1beta1().Ingresses("default").List(v1.ListOptions{})
 
 	if error != nil {
 		fmt.Println("Error getting ingress resources. Exiting...")
