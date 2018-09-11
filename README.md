@@ -4,10 +4,10 @@
 
 ### Install Docker in Docker
 
-Use this repo: https://github.com/kubernetes-sigs/kubeadm-dind-cluster
+Use this repo: https://github.com/kubernetes-sigs/kubeadm-dind-cluster <br>
 `wget https://cdn.rawgit.com/kubernetes-sigs/kubeadm-dind-cluster/master/fixed/dind-cluster-v1.8.sh`<br>
 `chmod +x dind-cluster-v1.8.sh`<br>
-`./dind-cluster-v1.8.sh up`
+`./dind-cluster-v1.8.sh up`<br>
 
 
 ### External connectivity to port apiserver in port 8001 
