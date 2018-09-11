@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"github.com/urfave/cli"
@@ -34,9 +33,9 @@ func deleteAll() error {
 
 	fmt.Println("Removing All K8S resources")
 
+	deleteAllK8SServerPolicies()
 	deleteAllK8SContentRoutingPolicies()
 	deleteAllK8SServerPoolRules()
-	deleteAllK8SServerPolicies()
 	deleteAllK8SVirtualServers()
 
 	return nil
@@ -44,6 +43,9 @@ func deleteAll() error {
 }
 
 func deleteAllK8SContentRoutingPolicies() error {
+
+	fmt.Println("Removing Content Routing Policies")
+
 	response, error := fwb.DoGet("api/v1.0/ServerObjects/Server/HTTPContentRoutingPolicy/")
 
 	if error != nil {
@@ -76,6 +78,8 @@ func deleteAllK8SContentRoutingPolicies() error {
 
 func deleteAllK8SServerPoolRules() error {
 
+	fmt.Println("Removing Server Pool Rules")
+
 	response, error := fwb.DoGet("api/v1.0/ServerObjects/Server/ServerPool")
 
 	if error != nil {
@@ -106,10 +110,42 @@ func deleteAllK8SServerPoolRules() error {
 }
 
 func deleteAllK8SServerPolicies() error {
+
+	fmt.Println("Removing Server Policies")
+
+	response, error := fwb.DoGet("api/v1.0/Policy/ServerPolicy/ServerPolicy")
+
+	if error != nil {
+		return error
+	}
+
+	bodyByteArray, error := ioutil.ReadAll(response.Body)
+
+	var bodyMap interface{}
+
+	err := json.Unmarshal(bodyByteArray, &bodyMap)
+
+	if err != nil {
+		return err
+	}
+
+	serverPolicyList := reflect.ValueOf(bodyMap)
+
+	for i := 0; i < serverPolicyList.Len(); i++ {
+
+		value := serverPolicyList.Index(i).Interface()
+		myMap := value.(map[string]interface{})
+
+		fwb.DeleteServerPolicy(myMap["name"].(string))
+	}
+
 	return nil
 }
 
 func deleteAllK8SVirtualServers() error {
+
+	fmt.Println("Removing Virtual Servers")
+
 	response, error := fwb.DoGet("api/v1.0/ServerObjects/Server/VirtualServer")
 
 	if error != nil {
@@ -138,6 +174,28 @@ func deleteAllK8SVirtualServers() error {
 
 	return nil
 
+}
+
+func getNodePortFromService(service string) int32 {
+
+	kubeconfig := filepath.Join(
+		os.Getenv("HOME"), ".kube", "config")
+
+	clientset, err := getClient(kubeconfig)
+	if err != nil {
+		fmt.Println(strings.Join([]string{"Error:", err.Error()}, ""))
+		logrus.Error(err)
+		os.Exit(-1)
+	}
+
+	services, error := clientset.CoreV1().Services("default").List(v1.ListOptions{LabelSelector: "run=" + service})
+
+	if error != nil || len(services.Items) == 0 {
+		fmt.Println("Error getting services. Exiting...")
+		os.Exit(-1)
+	}
+
+	return services.Items[0].Spec.Ports[0].NodePort
 }
 
 func transformIngressToFWB(ingress v1beta1.Ingress) {
@@ -175,29 +233,6 @@ func transformHTTPRuleToFWB(host string, httpRule *v1beta1.HTTPIngressRuleValue)
 	}
 }
 
-func getNodePortFromService(service string) int32 {
-
-	kubeconfig := filepath.Join(
-		os.Getenv("HOME"), ".kube", "config")
-
-	clientset, err := getClient(kubeconfig)
-	if err != nil {
-		fmt.Println(strings.Join([]string{"Error:", err.Error()}, ""))
-		logrus.Error(err)
-		os.Exit(-1)
-	}
-
-	services, error := clientset.CoreV1().Services("default").List(v1.ListOptions{LabelSelector: "run=forum-webserver"})
-
-	if error != nil || len(services.Items) == 0 {
-		fmt.Println("Error getting services. Exiting...")
-		os.Exit(-1)
-	}
-
-	fmt.Println("Returning:" + strconv.FormatInt(int64(services.Items[0].Spec.Ports[0].NodePort), 10))
-	return services.Items[0].Spec.Ports[0].NodePort
-}
-
 func transformHTTPIngressPathToFWB(host string, ingressPath v1beta1.HTTPIngressPath) {
 
 	path := ingressPath.Path
@@ -223,23 +258,33 @@ func transformHTTPIngressPathToFWB(host string, ingressPath v1beta1.HTTPIngressP
 
 	// CreateHTTPContentRoutingPolicy
 	fmt.Println("Creating HTTP Content Routing Policy...")
-	fwb.CreateHTTPContentRoutingPolicy(fwb.SafeName("K8S_HTTP_Content_Routing_Policy_"+host+"_"+path),
+	contentRoutingPolicyName := fwb.SafeName("K8S_HTTP_Content_Routing_Policy_" + host + "_" + path)
+	fwb.CreateHTTPContentRoutingPolicy(contentRoutingPolicyName,
 		fwb.SafeName("K8S_Server_Pool_"+service),
 		"(  )")
 
 	// CreateHTTPContentRoutingUsingHost
 	fmt.Println("Creating HTTP Content Routing for Host...")
-	fwb.CreateHTTPContentRoutingUsingHost(fwb.SafeName("K8S_HTTP_Content_Routing_Policy_"+host+"_"+path),
+	fwb.CreateHTTPContentRoutingUsingHost(contentRoutingPolicyName,
 		host,
 		3,
 		fortiwebclient.AND)
 
 	// CreateHTTPContentRoutingUsingURL
 	fmt.Println("Creating HTTP Content Routing for URL...")
-	fwb.CreateHTTPContentRoutingUsingURL(fwb.SafeName("K8S_HTTP_Content_Routing_Policy_"+host+"_"+path),
+	fwb.CreateHTTPContentRoutingUsingURL(contentRoutingPolicyName,
 		strings.Replace(path, "/", " ", -1),
 		3,
-		fortiwebclient.OR)
+		fortiwebclient.AND)
+
+	fmt.Println("Creating Server Policy Content Rule")
+	fwb.CreateServerPolicyContentRule("K8S_Server_Policy",
+		"",
+		contentRoutingPolicyName,
+		"#navigate/InlineProtectionProfile/",
+		"",
+		true,
+		false)
 
 }
 
@@ -283,12 +328,6 @@ func main() {
 			Usage: "Kube config path for outside of cluster access",
 		},
 	}
-
-	var tag string
-
-	tag = "Test"
-
-	fmt.Println(tag)
 
 	kubeconfig := filepath.Join(
 		os.Getenv("HOME"), ".kube", "config")
@@ -384,7 +423,7 @@ func main() {
 	}
 	*/
 
-	fmt.Print("\n Getting Ingress: \n\n")
+	fmt.Println("\n Getting Ingress Data...")
 
 	ingresses, error := clientset.ExtensionsV1beta1().Ingresses("default").List(v1.ListOptions{})
 

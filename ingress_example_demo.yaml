@@ -4,25 +4,25 @@ metadata:
   name: my-ingress
 spec:
   rules:
-  - host: foo.bar.com
+  - host: foo.com
     http:
       paths:
       - backend:
           serviceName: forum-webserver  # ServerPool1
           servicePort: 80
-        path: /foo                      # HTTPContentRouting1
+        path: /path1                    # HTTPContentRouting1
       - backend: 
           serviceName: image-webserver  # ServerPool2
           servicePort: 80
-        path: /foo2                     # HTTPContentRouting2
-  - host: bar.baz.com
+        path: /path2                    # HTTPContentRouting2
+  - host: bar.com
     http:
       paths:
       - backend:
           serviceName: forum-webserver  # ServerPool1
           servicePort: 80
-        path: /foo                      # HTTPContentRouting3
+        path: /path3                    # HTTPContentRouting3
       - backend:
           serviceName: image-webserver  # ServerPool2
           servicePort: 80
-        path: /foo2                     # HTTPContentRouting4
+        path: /path1                    # HTTPContentRouting4

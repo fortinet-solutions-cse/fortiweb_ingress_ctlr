@@ -39,4 +39,12 @@ kubectl get ingress
 kubectl describe ingress
 
 # Access pods
+kubectl get pods
 kubectl exec -it forum-webserver-d4f956cbc-v88lz bash
+
+# Execute requests to fetch data from different pods
+
+wget --header "Host:foo.com" -O - http://192.168.122.40/path1
+wget --header "Host:foo.com" -O - http://192.168.122.40/path2
+wget --header "Host:bar.com" -O - http://192.168.122.40/path3
+wget --header "Host:bar.com" -O - http://192.168.122.40/path1
