@@ -44,7 +44,7 @@ func deleteAll() error {
 }
 
 func deleteAllK8SContentRoutingPolicies() error {
-	response, error := fwb.DoGet("api/v1.0/ServerObjects/Server/HTTPContentRoutingPolicy/K8S_HTTP_Content_Routing_Policy")
+	response, error := fwb.DoGet("api/v1.0/ServerObjects/Server/HTTPContentRoutingPolicy/")
 
 	if error != nil {
 		return error
@@ -75,6 +75,32 @@ func deleteAllK8SContentRoutingPolicies() error {
 }
 
 func deleteAllK8SServerPoolRules() error {
+
+	response, error := fwb.DoGet("api/v1.0/ServerObjects/Server/ServerPool")
+
+	if error != nil {
+		return error
+	}
+
+	bodyByteArray, error := ioutil.ReadAll(response.Body)
+
+	var bodyMap interface{}
+
+	err := json.Unmarshal(bodyByteArray, &bodyMap)
+
+	if err != nil {
+		return err
+	}
+
+	serverPoolList := reflect.ValueOf(bodyMap)
+
+	for i := 0; i < serverPoolList.Len(); i++ {
+
+		value := serverPoolList.Index(i).Interface()
+		myMap := value.(map[string]interface{})
+
+		fwb.DeleteServerPool(myMap["name"].(string))
+	}
 
 	return nil
 }
