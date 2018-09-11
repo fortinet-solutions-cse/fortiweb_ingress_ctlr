@@ -183,7 +183,7 @@ func transformHTTPIngressPathToFWB(host string, ingressPath v1beta1.HTTPIngressP
 
 	// CreateServerPool
 	fmt.Println("Creating Server Pool...")
-	fwb.CreateServerPool("K8S_Server_Pool_"+fwb.SafeURL(service),
+	fwb.CreateServerPool("K8S_Server_Pool_"+fwb.SafeName(service),
 		fortiwebclient.ServerBalance,
 		fortiwebclient.ReverseProxy,
 		fortiwebclient.RoundRobin,
@@ -191,26 +191,26 @@ func transformHTTPIngressPathToFWB(host string, ingressPath v1beta1.HTTPIngressP
 
 	// CreateServerPoolRule
 	fmt.Println("Creating Server Pool Rule 1...")
-	fwb.CreateServerPoolRule("K8S_Server_Pool_"+fwb.SafeURL(service), "10.192.0.3", portNumber, 2, 0)
+	fwb.CreateServerPoolRule("K8S_Server_Pool_"+fwb.SafeName(service), "10.192.0.3", portNumber, 2, 0)
 	fmt.Println("Creating Server Pool Rule 2...")
-	fwb.CreateServerPoolRule("K8S_Server_Pool_"+fwb.SafeURL(service), "10.192.0.4", portNumber, 2, 0)
+	fwb.CreateServerPoolRule("K8S_Server_Pool_"+fwb.SafeName(service), "10.192.0.4", portNumber, 2, 0)
 
 	// CreateHTTPContentRoutingPolicy
 	fmt.Println("Creating HTTP Content Routing Policy...")
-	fwb.CreateHTTPContentRoutingPolicy(fwb.SafeURL("K8S_HTTP_Content_Routing_Policy_"+host+"_"+path),
-		fwb.SafeURL("K8S_Server_Pool_"+service),
+	fwb.CreateHTTPContentRoutingPolicy(fwb.SafeName("K8S_HTTP_Content_Routing_Policy_"+host+"_"+path),
+		fwb.SafeName("K8S_Server_Pool_"+service),
 		"(  )")
 
 	// CreateHTTPContentRoutingUsingHost
 	fmt.Println("Creating HTTP Content Routing for Host...")
-	fwb.CreateHTTPContentRoutingUsingHost(fwb.SafeURL("K8S_HTTP_Content_Routing_Policy_"+host+"_"+path),
+	fwb.CreateHTTPContentRoutingUsingHost(fwb.SafeName("K8S_HTTP_Content_Routing_Policy_"+host+"_"+path),
 		host,
 		3,
 		fortiwebclient.AND)
 
 	// CreateHTTPContentRoutingUsingURL
 	fmt.Println("Creating HTTP Content Routing for URL...")
-	fwb.CreateHTTPContentRoutingUsingURL(fwb.SafeURL("K8S_HTTP_Content_Routing_Policy_"+host+"_"+path),
+	fwb.CreateHTTPContentRoutingUsingURL(fwb.SafeName("K8S_HTTP_Content_Routing_Policy_"+host+"_"+path),
 		strings.Replace(path, "/", " ", -1),
 		3,
 		fortiwebclient.OR)
