@@ -48,7 +48,7 @@ Change the setting in System/Admin/Settings/HTTP
 `kubectl get pods`<br>
 `kubectl exec -it forum-webserver-d4f956cbc-v88lz bash`<br>
 
-### Execute requests to fetch data from different pods
+### Execute requests to fetch data from different services 
 
 `wget --header "Host:foo.com" -O - http://192.168.122.40/path1`<br>
 `wget --header "Host:foo.com" -O - http://192.168.122.40/path2`<br>
